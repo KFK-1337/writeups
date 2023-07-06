@@ -5,6 +5,7 @@
 **URL: https://tryhackme.com/room/temple**
 
 
+
 **Thoughts about the challenge before starting the challenge.**
 
 When looking at the task, based on the name and the categories, it is most likely a Server-Side Template Injection (SSTI) vulnerability that will be exploited.
