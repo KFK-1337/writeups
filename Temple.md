@@ -6,6 +6,7 @@
 
 
 **Thoughts about the challenge before starting the challenge.**
+
 When looking at the task, based on the name and the categories, it is most likely a Server-Side Template Injection (SSTI) vulnerability that will be exploited.
 Python Werkzeug Flask is well known in CTFs to contain SSTI vulnerability, and the name of the challenge also hints at the T in the SSTI.
 The difficulty of the challenge could be based on how hard it is to find the vulnerability, if it is hard to exploit, bypassing of filters, and as well the difficulty of the privilege escalation.
