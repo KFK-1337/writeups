@@ -200,8 +200,8 @@ The last flag is then found at ````/root/flag2.txt````.
 
 **More information:**
 
-We got access to the bill user based on the SSTI, but there were also found 2 other users, frankie and princess.
-After the challenge was completed, there was found a possibility to crack the princess password based on the hash found in ````/etc/shadow````.
+We got access to the bill user based on the SSTI, but there were also found two other users, ````frankie```` and ````princess````.
+After the challenge was completed, there was found a possibility to crack the ````princess```` password based on the hash found in ````/etc/shadow````.
 This was only tested with the Rockyou wordlist. This indicates that the server allows users to have bad passwords.
 
 It is also possible to obtain access to the MySQL service.
