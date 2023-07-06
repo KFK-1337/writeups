@@ -4,7 +4,7 @@
 
 **URL: https://tryhackme.com/room/temple**
 
-
+  
 
 **Thoughts about the challenge before starting the challenge.**
 
