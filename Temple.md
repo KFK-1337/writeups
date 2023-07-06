@@ -146,7 +146,7 @@ https://book.hacktricks.xyz/linux-hardening/privilege-escalation/logstash
 
 
 The first indicator for this vulnerability is if this file ````/etc/logstash/pipelines.yml contains 'path.config: "/etc/logstash/conf.d/*.conf"'````.
-The * means it would use all the .conf files inside the path /etc/logstash/conf.d/. 
+The ````*```` means it would use all the ````.conf```` files inside the path ````/etc/logstash/conf.d/````. 
 
 
 ````pipeline.yml```` on the target, which indicated what was explained above from hacktricks.
