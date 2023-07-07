@@ -10,7 +10,7 @@ image:
   height: 400   # in pixels
 ---
 
-#Temple - Hard
+# Temple - Hard
 
 **Category: Security, Web, Hacking, Flask**
 
@@ -18,16 +18,16 @@ URL: https://tryhackme.com/room/temple
 
 
 
-#Thoughts about the challenge before starting the challenge.
+# Thoughts about the challenge before starting the challenge.
 
 When looking at the task, based on the name and the categories, it is most likely a Server-Side Template Injection (SSTI) vulnerability that will be exploited.
 Python Werkzeug Flask is well known in CTFs to contain SSTI vulnerability, and the name of the challenge also hints at the T in the SSTI.
 The difficulty of the challenge could be based on how hard it is to find the vulnerability, if it is hard to exploit, bypassing of filters, and as well the difficulty of the privilege escalation.
 
 
-#Process for obtaining Flag1.txt:
+# Process for obtaining Flag1.txt:
 
-##Open ports and services:
+## Open ports and services:
 ````
 nmap -T4 -A -p- -Pn IP
 7 echo: this service only echoes back what is being sent to it.
@@ -127,7 +127,7 @@ After inserting this as the username and creating the account, a reverse shell i
 This gave foothold as ````bill````, and the first flag was found under ````/home/bill/flagg1.txt````.
 
 
-#Useful commands for a better shell:
+# Useful commands for a better shell:
 ````
 1. on the target: python3 -c 'import pty;pty.spawn("/bin/bash")'
 2. on the target: export TERM=xterm
@@ -140,7 +140,7 @@ This would make it possible to arrow up for earlier commands, clear to clear the
 The terminal is not being exited with ````CTRL + C````, making it possible to run other scripts on the target and use ````CTRL + C```` to exit that script and not the terminal reverse shell.
 
 
-#Process for obtaining Flag2.txt:
+# Process for obtaining Flag2.txt:
 
 When enumerating for privilege escalations, I always check manually at first before using auto scripts like Linpeas.
 This is because some escalations could often be found faster by one or multiple commands than by a script running multiple processes to gather critical information.
@@ -189,7 +189,7 @@ which means we could run this binary with the ````-p```` flag and have root priv
 This code is the one found at https://book.hacktricks.xyz/linux-hardening/privilege-escalation/logstash , but with another command.
 
 
-##privesc exploit:
+## privesc exploit:
 ````
 input {
   exec {  
@@ -209,7 +209,7 @@ output {
 The last flag is then found at ````/root/flag2.txt````.
 
 
-#More information:
+# More information:
 
 We got access to the bill user based on the SSTI, but there were also found two other users, ````frankie```` and ````princess````.
 After the challenge was completed, there was found a possibility to crack the ````princess```` password based on the hash found in ````/etc/shadow````.
